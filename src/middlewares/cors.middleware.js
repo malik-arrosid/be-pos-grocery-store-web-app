@@ -1,4 +1,3 @@
-// back-end-pa-app/src/middlewares/cors.middleware.js
 import cors from "cors";
 import config from "../config/config.js";
 

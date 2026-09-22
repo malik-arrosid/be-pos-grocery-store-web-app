@@ -17,11 +17,9 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const ip = (
-      req.headers["x-forwarded-for"] ||
-      req.socket.remoteAddress ||
-      ""
-    ).toString();
+    // req.ip already resolves to the original client IP when "trust proxy"
+    // is configured, avoiding the raw multi-IP "x-forwarded-for" chain.
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
     const username = req.body?.username || "unknown";
     return `${ip}:${username}`;
   },
@@ -81,11 +79,11 @@ const loginUser = async (req, res) => {
     const refreshToken = makeRefreshToken();
     const rtExp = getRefreshExpiryDate();
     const ua = req.get("user-agent");
-    const ip = (
-      req.headers["x-forwarded-for"] ||
-      req.socket.remoteAddress ||
-      ""
-    ).toString();
+    // req.ip yields a single client IP (resolved via "trust proxy"), unlike
+    // the raw "x-forwarded-for" header which can contain a comma-separated
+    // proxy chain (e.g. "117.18.17.106, 152.233.68.97") and is rejected by
+    // the "inet" column type in Postgres.
+    const ip = req.ip || req.socket.remoteAddress || null;
 
     const session = await createSession({
       userId: user.id_user,
