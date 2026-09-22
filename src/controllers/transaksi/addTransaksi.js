@@ -188,7 +188,10 @@ const addTransaksi = async (req, res) => {
       ([idBarang, quantity], index) => {
         const parameterStart = index * 2;
         stockValues.push(idBarang, quantity);
-        return `($${parameterStart + 1}::uuid, $${parameterStart + 2})`;
+        // Explicitly cast quantity to numeric: without it, an all-parameter
+        // VALUES column can be inferred as text by Postgres, which then
+        // fails the "integer - text" subtraction below.
+        return `($${parameterStart + 1}::uuid, $${parameterStart + 2}::numeric)`;
       },
     );
 
