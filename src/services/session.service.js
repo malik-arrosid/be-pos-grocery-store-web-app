@@ -36,7 +36,7 @@ async function matchRefreshToken(sessionId, refreshToken) {
   if (!rows[0]) return { ok: false, reason: "NOT_FOUND" };
   const s = rows[0];
   if (s.revoked_at) return { ok: false, reason: "REVOKED" };
-  if (new Date(s.expiresAt) < new Date())
+  if (new Date(s.expires_at) < new Date())
     return { ok: false, reason: "EXPIRED" };
   const ok = await bcrypt.compare(refreshToken, s.refresh_hash);
   return ok ? { ok: true } : { ok: false, reason: "MISMATCH" };
