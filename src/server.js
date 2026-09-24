@@ -3,7 +3,7 @@ import app from "./app.js";
 import startSchedulers from "./scheduler/index.js";
 import "./config/firebase.js";
 
-// startSchedulers();
+startSchedulers();
 // const PORT = config.app.port || 5000;
 const PORT = config.app.port || 8080;
 app.listen(PORT, () => {
