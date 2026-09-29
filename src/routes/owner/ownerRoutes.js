@@ -1,7 +1,6 @@
 import express from "express";
 import { authenticate, authorize } from "../../middlewares/auth.middleware.js";
 import {
-  getDailyReport,
   getWeeklyReport,
   getMonthlyReport,
   getYearlyReport,
@@ -11,12 +10,6 @@ import { getDateRangeStats } from "../../controllers/transaksi/index.js";
 const router = express.Router();
 
 // Reports routes - owner only
-router.get(
-  "/reports/daily",
-  authenticate,
-  authorize(["owner"]),
-  getDailyReport,
-);
 
 router.get(
   "/reports/weekly",

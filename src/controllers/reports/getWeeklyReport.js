@@ -30,7 +30,7 @@ const getWeeklyReport = async (req, res) => {
             FROM generate_series($1::date, $2::date, interval '1 day')
         )
         SELECT
-            to_char(h.tanggal, 'YYYY-MM-DD') AS date_iso,La
+            to_char(h.tanggal, 'YYYY-MM-DD') AS date_iso,
             COALESCE(SUM(t.total_harga), 0)::int AS total_harian
         FROM hari h
         LEFT JOIN transaksi t

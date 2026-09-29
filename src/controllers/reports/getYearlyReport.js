@@ -9,7 +9,6 @@ const getYearlyReport = async (req, res) => {
       SELECT
         COUNT(DISTINCT t.id_transaksi) AS total_transaksi,
         COALESCE(SUM(t.total_harga), 0)::int AS total_pendapatan,
-        COUNT(DISTINCT t.id_pelanggan) AS total_pelanggan_unik,
         COUNT(DISTINCT DATE(t.created_at)) AS total_hari_transaksi,
         EXTRACT(MONTH FROM t.created_at) AS bulan,
         COALESCE(SUM(t.total_harga), 0)::int AS pendapatan_bulanan
@@ -23,8 +22,7 @@ const getYearlyReport = async (req, res) => {
     const summarySQL = `
       SELECT
         COUNT(DISTINCT t.id_transaksi) AS total_transaksi,
-        COALESCE(SUM(t.total_harga), 0)::int AS total_pendapatan,
-        COUNT(DISTINCT t.id_pelanggan) AS total_pelanggan_unik
+        COALESCE(SUM(t.total_harga), 0)::int AS total_pendapatan
       FROM transaksi t
       WHERE EXTRACT(YEAR FROM t.created_at) = $1
         AND t.status_transaksi = 'berhasil'

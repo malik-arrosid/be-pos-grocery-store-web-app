@@ -11,7 +11,6 @@ const getMonthlyReport = async (req, res) => {
       SELECT
         COUNT(DISTINCT t.id_transaksi) AS total_transaksi,
         COALESCE(SUM(t.total_harga), 0)::int AS total_pendapatan,
-        COUNT(DISTINCT t.id_pelanggan) AS total_pelanggan_unik,
         COUNT(DISTINCT DATE(t.created_at)) AS total_hari_transaksi
       FROM transaksi t
       WHERE EXTRACT(YEAR FROM t.created_at) = $1
