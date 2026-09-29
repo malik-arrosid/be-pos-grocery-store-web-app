@@ -15,28 +15,28 @@ router.post("/", authenticate, authorize(["kasir"]), addPelanggan);
 router.get(
   "/",
   authenticate,
-  authorize(["admin", "kasir", "owner"]),
+  authorize(["kasir", "owner"]),
   getAllPelanggan,
 );
 
 router.get(
   "/search",
   authenticate,
-  authorize(["admin", "kasir", "owner"]),
+  authorize(["kasir", "owner"]),
   searchPelanggan,
 );
 
 router.get(
   "/:id_pelanggan",
   authenticate,
-  authorize(["admin", "kasir", "owner"]),
+  authorize(["kasir", "owner"]),
   getPelangganById,
 );
 
 router.patch(
   "/:id_pelanggan",
   authenticate,
-  authorize(["kasir", "admin"]),
+  authorize(["kasir"]),
   updatePelangganById,
 );
 
