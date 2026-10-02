@@ -5,7 +5,7 @@ import {
   addTransaksi,
   getAllTransaksi,
   getTransaksiById,
-  searchTransaksiByKodeTransaksi,
+  searchTransaksi,
   updateTransaksiById,
   // deleteTransaksiById,
   getDateRangeStats,
@@ -25,7 +25,7 @@ router.get(
   "/search",
   authenticate,
   authorize(["kasir", "owner"]),
-  searchTransaksiByKodeTransaksi,
+  searchTransaksi,
 );
 
 router.get(

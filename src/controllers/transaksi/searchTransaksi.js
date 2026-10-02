@@ -1,25 +1,45 @@
 import pool from "../../database/db.js";
 import { normalizeUnit, buildJumlahItemLabel } from "./transaksiHelpers.js";
 
-const searchTransaksiByKodeTransaksi = async (req, res) => {
-  const { kode_transaksi, page = 1, limit = 10 } = req.query;
+const searchTransaksi = async (req, res) => {
+  const {
+    keyword = "",
+    kode_transaksi = "",
+    nama_pelanggan = "",
+    page = 1,
+    limit = 10,
+  } = req.query;
 
-  if (!kode_transaksi || kode_transaksi.trim() === "") {
+  const searchKeyword = String(
+    keyword || kode_transaksi || nama_pelanggan || "",
+  ).trim();
+
+  if (!searchKeyword) {
     return res
       .status(400)
-      .json({ success: false, message: "Parameter kode_transaksi diperlukan" });
+      .json({
+        success: false,
+        message:
+          "Parameter pencarian diperlukan (keyword, kode_transaksi, atau nama_pelanggan)",
+      });
   }
 
-  const pageNum = parseInt(page, 10) || 1;
-  const limitNum = parseInt(limit, 10) || 10;
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
   const offset = (pageNum - 1) * limitNum;
-  const searchPattern = `%${kode_transaksi.trim()}%`;
+  const searchPattern = `%${searchKeyword}%`;
 
   try {
     const countQuery = `
       SELECT COUNT(*)::int AS total
       FROM transaksi t
-      WHERE t.kode_transaksi ILIKE $1
+      LEFT JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan
+      WHERE
+        t.kode_transaksi ILIKE $1
+        OR (
+          t.tipe_pelanggan = 'member'
+          AND p.nama_pelanggan ILIKE $1
+        )
     `;
     const countResult = await pool.query(countQuery, [searchPattern]);
     const totalData = countResult.rows[0].total;
@@ -42,7 +62,12 @@ const searchTransaksiByKodeTransaksi = async (req, res) => {
         FROM transaksi t
         LEFT JOIN pelanggan p ON t.id_pelanggan = p.id_pelanggan
         LEFT JOIN users u ON t.id_user = u.id_user
-        WHERE t.kode_transaksi ILIKE $1
+        WHERE
+          t.kode_transaksi ILIKE $1
+          OR (
+            t.tipe_pelanggan = 'member'
+            AND p.nama_pelanggan ILIKE $1
+          )
         ORDER BY t.created_at DESC
         LIMIT $2 OFFSET $3
       `,
@@ -110,14 +135,15 @@ const searchTransaksiByKodeTransaksi = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Pencarian transaksi berdasarkan kode transaksi berhasil",
+      message:
+        "Pencarian transaksi berdasarkan kode transaksi atau nama pelanggan member berhasil",
       data,
       meta,
     });
   } catch (err) {
-    console.error("Error searchTransaksiByKodeTransaksi:", err.message);
+    console.error("Error searchTransaksi:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-export default searchTransaksiByKodeTransaksi;
+export default searchTransaksi;
