@@ -31,6 +31,7 @@ const getWeeklyReport = async (req, res) => {
         )
         SELECT
             to_char(h.tanggal, 'YYYY-MM-DD') AS date_iso,
+            COUNT(DISTINCT t.id_transaksi)::int AS total_transaksi_harian,
             COALESCE(SUM(t.total_harga), 0)::int AS total_harian
         FROM hari h
         LEFT JOIN transaksi t
@@ -49,6 +50,7 @@ const getWeeklyReport = async (req, res) => {
         )
         SELECT
             to_char(h.tanggal, 'YYYY-MM-DD') AS date_iso,
+            COUNT(DISTINCT t.id_transaksi)::int AS total_transaksi_harian,
             COALESCE(SUM(t.total_harga), 0)::int AS total_harian
         FROM hari h
         LEFT JOIN transaksi t
