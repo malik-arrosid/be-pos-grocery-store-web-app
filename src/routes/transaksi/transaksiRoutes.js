@@ -22,17 +22,17 @@ router.get(
 );
 
 router.get(
-  "/:id_transaksi",
-  authenticate,
-  authorize(["kasir", "owner"]),
-  getTransaksiById,
-);
-
-router.get(
   "/search",
   authenticate,
   authorize(["kasir", "owner"]),
   searchTransaksiByKodeTransaksi,
+);
+
+router.get(
+  "/:id_transaksi",
+  authenticate,
+  authorize(["kasir", "owner"]),
+  getTransaksiById,
 );
 
 router.get(

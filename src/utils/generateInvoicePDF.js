@@ -112,7 +112,6 @@ export default async function generateInvoicePDF(meta = {}, detailBarang = []) {
     doc.text(`Kasir      : ${meta.kasir || "-"}`);
     doc.text(`Jam        : ${formatDate(meta.created_at, "time")}`);
     doc.text(`Pelanggan  : ${meta.nama_pelanggan || "-"}`);
-    doc.text(`Status     : ${meta.tipe_pelanggan || "-"}`);
 
     doc.moveDown(0.3);
     drawLine();
