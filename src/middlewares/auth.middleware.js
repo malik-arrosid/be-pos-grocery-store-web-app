@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
 import config from "../config/config.js";
+import { verifyAccessToken } from "../services/token.service.js";
 
 const authenticate = (req, res, next) => {
   const auth = req.headers.authorization;
@@ -13,7 +13,7 @@ const authenticate = (req, res, next) => {
   if (!token) return res.status(401).json({ message: "Unauthorized" });
 
   try {
-    const decoded = jwt.verify(token, config.app.jwtSecret);
+    const decoded = verifyAccessToken(token);
     req.user = decoded;
     next();
   } catch {

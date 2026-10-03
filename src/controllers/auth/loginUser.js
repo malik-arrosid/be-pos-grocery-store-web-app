@@ -2,7 +2,7 @@ import pool from "../../database/db.js";
 import bcrypt from "bcrypt";
 import {
   signAccessToken,
-  makeRefreshToken,
+  signRefreshToken,
   getAccessExpiryDate,
   getRefreshExpiryDate,
 } from "../../services/token.service.js";
@@ -76,7 +76,11 @@ const loginUser = async (req, res) => {
       username: user.username,
     });
 
-    const refreshToken = makeRefreshToken();
+    const refreshToken = signRefreshToken({
+      id_user: user.id_user,
+      role: user.role,
+      username: user.username,
+    });
     const rtExp = getRefreshExpiryDate();
     const ua = req.get("user-agent");
     // req.ip yields a single client IP (resolved via "trust proxy"), unlike

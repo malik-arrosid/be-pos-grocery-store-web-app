@@ -23,6 +23,9 @@ const config = {
     cookieSameSite: process.env.COOKIE_SAME_SITE,
     accessTokenTTL: process.env.ACCESS_TOKEN_TTL,
     refreshTokenTTL: process.env.REFRESH_TOKEN_TTL,
+    jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
+    jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
+    // Backward compatibility, will be used as fallback when split secrets are not set
     jwtSecret: process.env.JWT_SECRET,
     // Comma-separated list of allowed client origins
     clientOrigins: process.env.CLIENT_ORIGINS,

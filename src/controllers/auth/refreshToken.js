@@ -7,7 +7,8 @@ import {
 } from "../../services/session.service.js";
 import {
   signAccessToken,
-  makeRefreshToken,
+  signRefreshToken,
+  verifyRefreshToken,
   getAccessExpiryDate,
   getRefreshExpiryDate,
 } from "../../services/token.service.js";
@@ -32,11 +33,11 @@ function sendError(res, status, code, message, extras = {}) {
 
 const refreshToken = async (req, res) => {
   const cookiePath = req.baseUrl || "/";
-  
+
   try {
     const raw = req.cookies?.[COOKIE_RT];
     if (!raw) {
-      res.set("WWW-Authenticate", "Bearer error='invalid_token'");
+      res.set("WWW-Authenticate", "******'invalid_token'");
       return sendError(
         res,
         401,
@@ -45,13 +46,13 @@ const refreshToken = async (req, res) => {
       );
     }
 
-    const parts = raw.split(".", 2);
-    const sessionId = parts[0];
-    const presented = parts[1];
+    const separatorIndex = raw.indexOf(".");
+    const sessionId = separatorIndex >= 0 ? raw.slice(0, separatorIndex) : null;
+    const presented = separatorIndex >= 0 ? raw.slice(separatorIndex + 1) : null;
 
     if (!sessionId || !presented) {
       clearAuthCookies(res, cookiePath);
-      res.set("WWW-Authenticate", "Bearer error='invalid_token'");
+      res.set("WWW-Authenticate", "******'invalid_token'");
       return sendError(
         res,
         401,
@@ -60,11 +61,36 @@ const refreshToken = async (req, res) => {
       );
     }
 
+    let decodedRefresh;
+    try {
+      decodedRefresh = verifyRefreshToken(presented);
+    } catch {
+      clearAuthCookies(res, cookiePath);
+      res.set("WWW-Authenticate", "******'invalid_token'");
+      return sendError(
+        res,
+        401,
+        "INVALID_REFRESH_TOKEN",
+        "Invalid refresh token"
+      );
+    }
+
     const sess = await getSessionById(sessionId);
     if (!sess) {
       clearAuthCookies(res, cookiePath);
-      res.set("WWW-Authenticate", "Bearer error='invalid_token'");
+      res.set("WWW-Authenticate", "******'invalid_token'");
       return sendError(res, 401, "SESSION_NOT_FOUND", "Session not found");
+    }
+
+    if (decodedRefresh.id_user !== sess.user_id) {
+      clearAuthCookies(res, cookiePath);
+      res.set("WWW-Authenticate", "******'invalid_token'");
+      return sendError(
+        res,
+        401,
+        "REFRESH_SESSION_MISMATCH",
+        "Refresh token does not match session"
+      );
     }
 
     const match = await matchRefreshToken(sessionId, presented);
@@ -94,7 +120,7 @@ const refreshToken = async (req, res) => {
       const msg = reasonToMsg[match.reason] || "Invalid/Expired session";
 
       const status = match.reason === "REVOKED" ? 403 : 401;
-      res.set("WWW-Authenticate", "Bearer error='invalid_token'");
+      res.set("WWW-Authenticate", "******'invalid_token'");
       return sendError(res, status, code, msg, { reason: match.reason });
     }
 
@@ -105,7 +131,7 @@ const refreshToken = async (req, res) => {
     const user = rows[0];
     if (!user) {
       clearAuthCookies(res, cookiePath);
-      res.set("WWW-Authenticate", "Bearer error='invalid_token'");
+      res.set("WWW-Authenticate", "******'invalid_token'");
       return sendError(res, 401, "USER_NOT_FOUND", "User tidak valid");
     }
 
@@ -115,12 +141,16 @@ const refreshToken = async (req, res) => {
       username: user.username,
     });
 
-    const newRT = makeRefreshToken();
+    const newRT = signRefreshToken({
+      id_user: user.id_user,
+      role: user.role,
+      username: user.username,
+    });
     const rtExp = getRefreshExpiryDate();
 
     try {
       await rotateSession(sessionId, newRT, rtExp);
-    } catch (e) {
+    } catch {
       return sendError(res, 500, "ROTATE_FAILED", "Failed to rotate session");
     }
 
