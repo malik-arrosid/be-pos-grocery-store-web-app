@@ -1,11 +1,19 @@
 import pool from "../../database/db.js";
 
+const parsePositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+};
+
 const getAllPelanggan = async (req, res) => {
   try {
     // Ambil parameter pagination dari query
     const { page = 1, limit = 10, keyword = "" } = req.query;
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
+    const pageNum = parsePositiveInteger(page, 1);
+    const limitNum = parsePositiveInteger(limit, 10);
     const offset = (pageNum - 1) * limitNum;
 
     // Build where clause untuk pencarian
@@ -131,14 +139,14 @@ const searchPelanggan = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Parameter pencarian diperlukan",
-        error: KEYWORD_REQUIRED
+        error: "KEYWORD_REQUIRED",
       });
     }
 
     // Untuk search, kita tetap gunakan pagination juga
     const { page = 1, limit = 10 } = req.query;
-    const pageNum = parseInt(page, 10) | 1;
-    const limitNum = parseInt(limit, 10) | 10;
+    const pageNum = parsePositiveInteger(page, 1);
+    const limitNum = parsePositiveInteger(limit, 10);
     const offset = (pageNum - 1) * limitNum;
 
     const searchPattern = `%${keyword.trim()}%`;
@@ -151,7 +159,7 @@ const searchPelanggan = async (req, res) => {
     `;
     const countResult = await pool.query(countQuery, [searchPattern]);
     const totalData = countResult.rows[0].total;
-    const totalPage = Math.ceil(totalData / limitNum) | 1;
+    const totalPage = Math.ceil(totalData / limitNum);
 
     // Query data dengan pagination
     const result = await pool.query(
