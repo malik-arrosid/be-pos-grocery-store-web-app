@@ -27,6 +27,11 @@ export const sendPushToTokens = async ({ tokens, title, body, data = {} }) => {
   const stringData = Object.fromEntries(
     Object.entries(data).map(([key, value]) => [key, String(value ?? "")]),
   );
+  const webNotificationData = {
+    ...stringData,
+    notification_title: String(title ?? ""),
+    notification_body: String(body ?? ""),
+  };
 
   let successCount = 0;
   let failureCount = 0;
@@ -36,8 +41,7 @@ export const sendPushToTokens = async ({ tokens, title, body, data = {} }) => {
     try {
       const message = {
         tokens: batch,
-        notification: { title, body },
-        data: stringData,
+        data: webNotificationData,
         android: {
           priority: "high",
           notification: {
@@ -47,15 +51,8 @@ export const sendPushToTokens = async ({ tokens, title, body, data = {} }) => {
             visibility: "public",
           },
         },
-        apns: {
-          headers: { "apns-priority": "10" },
-          payload: {
-            aps: { alert: { title, body }, sound: "default" },
-          },
-        },
         webpush: {
           headers: { Urgency: "high" },
-          notification: { title, body },
         },
       };
 
