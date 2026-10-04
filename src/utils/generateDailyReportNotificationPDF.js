@@ -9,6 +9,34 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   });
 
+const formatReportQty = (value, unit) => {
+  const satuan = String(unit ?? "")
+    .trim()
+    .toUpperCase();
+  const numericValue = Number(value);
+
+  if ((satuan === "GRAM" || satuan === "G") && Number.isFinite(numericValue)) {
+    if (numericValue >= 1000) {
+      const kgValue = numericValue / 1000;
+      const formattedKg = Number.isInteger(kgValue)
+        ? String(kgValue)
+        : kgValue.toLocaleString("id-ID", {
+            maximumFractionDigits: 3,
+          });
+      return `${formattedKg} kg`;
+    }
+
+    const formattedGram = Number.isInteger(numericValue)
+      ? String(numericValue)
+      : numericValue.toLocaleString("id-ID", {
+          maximumFractionDigits: 3,
+        });
+    return `${formattedGram} gr`;
+  }
+
+  return formatQty(value, unit);
+};
+
 export default function generateDailyReportNotificationPDF(reportData = {}) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 40 });
@@ -54,7 +82,7 @@ export default function generateDailyReportNotificationPDF(reportData = {}) {
       const rows = items.map((item, index) => ({
         no: index + 1,
         nama_barang: item.item_name || "-",
-        qty: formatQty(Number(item.quantity || 0), item.satuan_dasar),
+        qty: formatReportQty(item.quantity, item.satuan_dasar),
         subtotal: formatCurrency(item.subtotal),
         pelanggan: item.customer_name
           ? `${item.customer_name} (${item.customer_type || "-"})`
