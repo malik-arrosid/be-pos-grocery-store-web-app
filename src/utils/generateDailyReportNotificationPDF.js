@@ -1,4 +1,5 @@
-import PDFDocument from "pdfkit";
+import PDFDocument from "pdfkit-table";
+import { formatQty } from "./qtyFormat.js";
 
 const formatCurrency = (value) =>
   Number(value || 0).toLocaleString("id-ID", {
@@ -40,28 +41,51 @@ export default function generateDailyReportNotificationPDF(reportData = {}) {
     }
 
     doc.moveDown(0.8);
-    doc.fontSize(12).text("Detail item terjual", { underline: true });
+    doc.fontSize(12).text("Detail barang terjual", { underline: true });
+    doc.moveDown(0.4);
 
-    if (items.length === 0) {
-      doc.fontSize(10).text("Tidak ada item terjual.");
-    } else {
-      items.forEach((item, index) => {
-        if (doc.y > 760) {
-          doc.addPage();
-        }
+    const finalize = async () => {
+      if (items.length === 0) {
+        doc.fontSize(10).text("Tidak ada barang terjual.");
+        doc.end();
+        return;
+      }
 
-        doc
-          .fontSize(10)
-          .text(
-            `${index + 1}. ${item.item_name || "-"} | Qty: ${Number(
-              item.quantity || 0,
-            )} | Subtotal: ${formatCurrency(item.subtotal)} | Pelanggan: ${
-              item.customer_name || "-"
-            } (${item.customer_type || "-"})`,
-          );
+      const rows = items.map((item, index) => ({
+        no: index + 1,
+        nama_barang: item.item_name || "-",
+        qty: formatQty(Number(item.quantity || 0), item.satuan_dasar),
+        subtotal: formatCurrency(item.subtotal),
+        pelanggan: item.customer_name
+          ? `${item.customer_name} (${item.customer_type || "-"})`
+          : "-",
+      }));
+
+      const table = {
+        headers: [
+          { label: "No.", property: "no", width: 35, align: "center" },
+          { label: "Nama barang", property: "nama_barang", width: 180 },
+          { label: "Qty", property: "qty", width: 80, align: "right" },
+          { label: "Subtotal", property: "subtotal", width: 110, align: "right" },
+          { label: "Pelanggan", property: "pelanggan", width: 130 },
+        ],
+        datas: rows,
+      };
+
+      await doc.table(table, {
+        x: 40,
+        y: doc.y,
+        divider: {
+          header: { disabled: false, width: 1, opacity: 0.6 },
+          horizontal: { disabled: false, width: 0.5, opacity: 0.3 },
+        },
+        prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
+        prepareRow: () => doc.font("Helvetica").fontSize(9),
       });
-    }
 
-    doc.end();
+      doc.end();
+    };
+
+    finalize().catch(reject);
   });
 }
