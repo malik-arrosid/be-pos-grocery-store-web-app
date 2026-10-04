@@ -91,11 +91,11 @@ export default function generateDailyReportNotificationPDF(reportData = {}) {
 
       const table = {
         headers: [
-          { label: "No.", property: "no", width: 35, align: "center" },
-          { label: "Nama barang", property: "nama_barang", width: 180 },
-          { label: "Qty", property: "qty", width: 80, align: "right" },
-          { label: "Subtotal", property: "subtotal", width: 110, align: "right" },
-          { label: "Pelanggan", property: "pelanggan", width: 130 },
+          { label: "No.", property: "no", width: 32, align: "center" },
+          { label: "Nama barang", property: "nama_barang", width: 100 },
+          { label: "Qty", property: "qty", width: 50, align: "right" },
+          { label: "Subtotal", property: "subtotal", width: 100, align: "right" },
+          { label: "Pelanggan", property: "pelanggan", width: 100, align: "right" },
         ],
         datas: rows,
       };
