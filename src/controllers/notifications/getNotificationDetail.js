@@ -25,7 +25,8 @@ const getNotificationDetail = async (req, res) => {
 
       const hasRequiredMetadata =
         notification.metadata?.summary &&
-        Array.isArray(notification.metadata?.daily_items);
+        Array.isArray(notification.metadata?.daily_items) &&
+        notification.metadata.daily_items.every((i) => "satuan_dasar" in i);
 
       reportDetail = hasRequiredMetadata
         ? notification.metadata

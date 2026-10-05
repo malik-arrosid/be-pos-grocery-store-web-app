@@ -123,6 +123,7 @@ export const getDailyReportMetadataByDate = async (reportDate) => {
       t.kode_transaksi,
       dt.nama_barang AS item_name,
       dt.quantity::int AS quantity,
+      b.satuan_dasar AS satuan_dasar,
       dt.subtotal::int AS subtotal,
       t.tipe_pelanggan AS customer_type,
       CASE
@@ -131,6 +132,7 @@ export const getDailyReportMetadataByDate = async (reportDate) => {
       END AS customer_name
     FROM detail_transaksi dt
     JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
+    LEFT JOIN barang b ON b.id_barang = dt.id_barang
     LEFT JOIN pelanggan p ON p.id_pelanggan = t.id_pelanggan
     WHERE DATE(t.created_at) = $1
       AND t.status_transaksi = 'berhasil'
