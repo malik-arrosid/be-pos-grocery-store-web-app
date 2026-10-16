@@ -8,7 +8,7 @@ import {
 } from "../../services/token.service.js";
 import { createSession } from "../../services/session.service.js";
 import config from "../../config/config.js";
-import rateLimit from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import { getCookieOptions } from "../../utils/cookieOptions.js";
 
 const loginLimiter = rateLimit({
@@ -19,7 +19,7 @@ const loginLimiter = rateLimit({
   keyGenerator: (req) => {
     // req.ip already resolves to the original client IP when "trust proxy"
     // is configured, avoiding the raw multi-IP "x-forwarded-for" chain.
-    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const ip = ipKeyGenerator(req.ip) || req.socket.remoteAddress || "unknown";
     const username = req.body?.username || "unknown";
     return `${ip}:${username}`;
   },
