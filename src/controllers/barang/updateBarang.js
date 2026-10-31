@@ -5,11 +5,8 @@ const updateBarangById = async (req, res) => {
 
   const schema = Joi.object({
     nama_barang: Joi.string().max(100).optional(),
-    kategori_barang: Joi.string().max(50).optional(),
-    stok_dasar: Joi.number().integer().min(0).optional(),
-    satuan_dasar: Joi.string().valid("PCS", "GRAM").optional(),
+    minimum_stok: Joi.number().integer().min(0).optional(),
     harga_jual_per_sd: Joi.number().precision(2).min(0).optional(),
-    harga_modal_per_sd: Joi.number().precision(2).min(0).optional(),
   }).min(1);
 
   const { error, value } = schema.validate(req.body);
@@ -51,15 +48,10 @@ const updateBarangById = async (req, res) => {
     };
 
     if (value.nama_barang !== undefined) push("nama_barang", value.nama_barang);
-    if (value.kategori_barang !== undefined)
-      push("kategori_barang", value.kategori_barang);
-    if (value.stok_dasar !== undefined) push("stok_dasar", value.stok_dasar);
-    if (value.satuan_dasar !== undefined)
-      push("satuan_dasar", value.satuan_dasar);
+    if (value.minimum_stok !== undefined)
+      push("minimum_stok", value.minimum_stok);
     if (value.harga_jual_per_sd !== undefined)
       push("harga_jual_per_sd", value.harga_jual_per_sd);
-    if (value.harga_modal_per_sd !== undefined)
-      push("harga_modal_per_sd", value.harga_modal_per_sd);
 
     params.push(id_barang);
 

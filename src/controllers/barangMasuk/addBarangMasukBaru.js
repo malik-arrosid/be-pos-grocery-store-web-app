@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 const addBarangMasukBaru = async (req, res) => {
   const schema = Joi.object({
     nama_barang: Joi.string().max(100).required(),
-    kategori_barang: Joi.string().max(50).optional(),
     stok_dasar: Joi.number().integer().min(1).required(),
     satuan_dasar: Joi.string().valid("PCS", "GRAM").required(),
     harga_jual_per_sd: Joi.number().precision(2).min(0).required(),
@@ -24,7 +23,6 @@ const addBarangMasukBaru = async (req, res) => {
   try {
     const {
       nama_barang,
-      // kategori_barang,
       stok_dasar,
       satuan_dasar,
       harga_jual_per_sd,
@@ -62,7 +60,6 @@ const addBarangMasukBaru = async (req, res) => {
         nama_barang,
         stok_dasar,
         satuan_dasar,
-        // kategori_barang,
         harga_jual_per_sd,
         harga_modal_per_sd,
       ],
