@@ -201,3 +201,38 @@ export const markAllAsRead = async () => {
 
   return true;
 };
+
+export const getLowStockItems = async () => {
+  const query = `
+    SELECT
+      id_barang,
+      nama_barang,
+      stok_dasar,
+      satuan_dasar,
+      minimum_stok,
+      harga_jual_per_sd,
+      harga_modal_per_sd
+    FROM barang
+    WHERE stok_dasar <= minimum_stok
+    ORDER BY stok_dasar ASC, nama_barang ASC
+  `;
+  const result = await pool.query(query);
+  return result.rows;
+};
+
+export const hasRecentLowStockNotificationForItem = async (
+  id_barang,
+  withinMinutes = 60,
+) => {
+  const query = `
+    SELECT 1
+    FROM notifications
+    WHERE notification_type = 'LOW_STOCK'
+      AND reference_table = 'barang'
+      AND reference_id = $1
+      AND created_at >= NOW() - ($2 || ' minutes')::interval
+    LIMIT 1
+  `;
+  const result = await pool.query(query, [id_barang, String(withinMinutes)]);
+  return result.rowCount > 0;
+};

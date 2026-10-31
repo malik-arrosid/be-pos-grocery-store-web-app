@@ -234,6 +234,30 @@ const addTransaksi = async (req, res) => {
     client.release();
     client = null;
 
+    try {
+      const updatedBarangRes = await pool.query(
+        `SELECT id_barang, nama_barang, stok_dasar, satuan_dasar, minimum_stok
+         FROM barang
+         WHERE id_barang = ANY($1::uuid[])`,
+        [barangIds],
+      );
+      const { sendLowStockNotificationForItem } =
+        await import("../../notifications/notification.service.js");
+      for (const row of updatedBarangRes.rows) {
+        if (Number(row.stok_dasar) <= Number(row.minimum_stok)) {
+          await sendLowStockNotificationForItem({
+            barang: row,
+            actorUserId: id_user,
+            source: "transaction",
+          }).catch((err) =>
+            console.error("Low stock notification error:", err),
+          );
+        }
+      }
+    } catch (lowStockErr) {
+      console.error("Error checking low stock after transaction:", lowStockErr);
+    }
+    
     // Invoice PDF kini dibuat on-demand saat diunduh (lihat downloadInvoicePdf),
     // tidak lagi digenerate & disimpan ke disk saat transaksi dibuat.
     let notificationError = null;

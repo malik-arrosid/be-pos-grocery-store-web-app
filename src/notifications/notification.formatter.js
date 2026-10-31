@@ -20,6 +20,12 @@ export const formatNotification = (type, payload = {}) => {
         message: `${actorRole} ${actorUsername} membuat transaksi ${payload.kodeTransaksi || "-"} sebesar ${formatNotificationCurrency(payload.totalHarga)} atas nama "${payload.namaPelanggan || "-"}".`,
       };
 
+    case NOTIFICATION_TYPES.LOW_STOCK:
+      return {
+        title: "Peringatan Stok Menipis",
+        message: payload.message,
+      };
+
     default:
       return {
         title: "Notifikasi",
