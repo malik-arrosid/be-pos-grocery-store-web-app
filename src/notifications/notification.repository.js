@@ -209,12 +209,8 @@ export const getLowStockItems = async () => {
       nama_barang,
       stok_dasar,
       satuan_dasar,
-      minimum_stok,
-      harga_jual_per_sd,
-      harga_modal_per_sd
     FROM barang
-    WHERE stok_dasar <= minimum_stok
-    ORDER BY stok_dasar ASC, nama_barang ASC
+    ORDER BY nama_barang ASC
   `;
   const result = await pool.query(query);
   return result.rows;

@@ -1,5 +1,6 @@
 import { NOTIFICATION_TYPES } from "./notification.types.js";
 import { formatNotificationCurrency } from "./notification.utils.js";
+import { formatQty } from "../utils/qtyFormat.js";
 
 export const formatNotification = (type, payload = {}) => {
   const actorRole = payload.actorRole || "Pengguna";
@@ -21,9 +22,15 @@ export const formatNotification = (type, payload = {}) => {
       };
 
     case NOTIFICATION_TYPES.LOW_STOCK:
+      const satuan = payload.satuan_dasar || "";
+      const stokFormatted = formatQty(payload.stok_dasar, satuan);
+      const thresholdFormatted = formatQty(payload.threshold, satuan);
+      
       return {
         title: "Peringatan Stok Menipis",
-        message: payload.message,
+        message:
+          payload.message ||
+          `Segera Restok Barang "${payload.nama_barang || "-"}" karna tersisa hanya ${stokFormatted ?? "-"} (batas low stock: ${thresholdFormatted ?? "-"})`,
       };
 
     default:

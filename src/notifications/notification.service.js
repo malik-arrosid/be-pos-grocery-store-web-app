@@ -3,10 +3,12 @@ import { formatNotification } from "./notification.formatter.js";
 import {
   createNotification,
   getDailyReportMetadataByDate,
+  getLowStockItems,
 } from "./notification.repository.js";
 import { publishNotification } from "../realtime/index.js";
 import { sendOwnerPush } from "../fcm/index.js";
 import { formatQty } from "../utils/qtyFormat.js";
+import { getLowStockThreshold, isLowStock } from "../utils/lowStockConfig.js";
 
 const formatIDRCurrency = (value) =>
   Number(value || 0).toLocaleString("id-ID", {
@@ -75,48 +77,34 @@ export const sendDailyReport = async (reportDate) => {
   return deliverNotification(notification);
 };
 
-export const sendLowStockNotificationForItem = async ({
-  barang,
-  actorUserId = null,
-  source = "system",
-}) => {
-  if (!barang) return null;
+export const sendLowStockNotification = async () => {
+  const items = await getLowStockItems();
+  const lowStockItems = items.filter((item) => isLowStock(item));
 
-  const stok = Number(barang.stok_dasar || 0);
-  const minimum = Number(barang.minimum_stok || 0);
+  const createdNotifications = [];
+  for (const item of lowStockItems) {
+    const threshold = getLowStockThreshold(item.nama_barang, item.satuan_dasar);
+    const metadata = {
+      nama_barang: item.nama_barang,
+      stok_dasar: Number(item.stok_dasar),
+      satuan_dasar: item.satuan_dasar,
+      threshold,
+    };
+    const formattedNotification = formatNotification(
+      NOTIFICATION_TYPES.LOW_STOCK,
+      metadata,
+    );
+    const notification = await createNotification({
+      title: formattedNotification.title,
+      message: formattedNotification.message,
+      notificationType: NOTIFICATION_TYPES.LOW_STOCK,
+      referenceTable: "barang",
+      referenceId: item.id_barang,
+      metadata,
+    });
+    const delivered = await deliverNotification(notification);
+    createdNotifications.push(delivered);
+  }
 
-  // Guard: pastikan memang masih di bawah/ sama dengan minimum
-  if (stok > minimum) return null;
-
-  const isOutOfStock = stok === 0;
-  const message = isOutOfStock
-    ? `Stok barang "${barang.nama_barang}" sudah habis (0 ${barang.satuan_dasar}). Segera lakukan restok di barang masuk.`
-    : `Stok barang "${barang.nama_barang}" menipis: ${formatQty(barang.stok_dasar, barang.satuan_dasar)} (minimum ${formatQty(barang.minimum_stok, barang.satuan_dasar)}). Segera lakukan restok di barang masuk.`;
-
-  const formattedNotification = formatNotification(
-    NOTIFICATION_TYPES.LOW_STOCK,
-    { message },
-  );
-
-  const metadata = {
-    id_barang: barang.id_barang,
-    nama_barang: barang.nama_barang,
-    stok_dasar: stok,
-    satuan_dasar: barang.satuan_dasar,
-    minimum_stok: minimum,
-    is_out_of_stock: isOutOfStock,
-    source,
-  };
-
-  const notification = await createNotification({
-    title: formattedNotification.title,
-    message: formattedNotification.message,
-    notificationType: NOTIFICATION_TYPES.LOW_STOCK,
-    referenceTable: "barang",
-    referenceId: barang.id_barang,
-    actorUserId,
-    metadata,
-  });
-
-  return deliverNotification(notification);
+  return createdNotifications;
 };
