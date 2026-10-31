@@ -6,6 +6,7 @@ import {
 } from "./notification.repository.js";
 import { publishNotification } from "../realtime/index.js";
 import { sendOwnerPush } from "../fcm/index.js";
+import { formatQty } from "../utils/qtyFormat.js";
 
 const formatIDRCurrency = (value) =>
   Number(value || 0).toLocaleString("id-ID", {
@@ -90,7 +91,7 @@ export const sendLowStockNotificationForItem = async ({
   const isOutOfStock = stok === 0;
   const message = isOutOfStock
     ? `Stok barang "${barang.nama_barang}" sudah habis (0 ${barang.satuan_dasar}). Segera lakukan restok di barang masuk.`
-    : `Stok barang "${barang.nama_barang}" menipis: ${stok} ${barang.satuan_dasar} (minimum ${minimum} ${barang.satuan_dasar}). Segera lakukan restok di barang masuk.`;
+    : `Stok barang "${barang.nama_barang}" menipis: ${stok} ${formatQty(barang.stok_dasar, barang.satuan_dasar)} (minimum ${minimum} ${barang.satuan_dasar}). Segera lakukan restok di barang masuk.`;
 
   const formattedNotification = formatNotification(
     NOTIFICATION_TYPES.LOW_STOCK,
