@@ -208,11 +208,22 @@ export const getLowStockItems = async () => {
       id_barang,
       nama_barang,
       stok_dasar,
-      satuan_dasar,
+      satuan_dasar
     FROM barang
     ORDER BY nama_barang ASC
   `;
   const result = await pool.query(query);
+  return result.rows;
+};
+
+export const getBarangByIds = async (ids) => {
+  if (!ids || ids.length === 0) return [];
+  const query = `
+    SELECT id_barang, nama_barang, stok_dasar, satuan_dasar
+    FROM barang
+    WHERE id_barang = ANY($1::uuid[])
+  `;
+  const result = await pool.query(query, [ids]);
   return result.rows;
 };
 

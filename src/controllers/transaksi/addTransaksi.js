@@ -264,18 +264,13 @@ const addTransaksi = async (req, res) => {
     }
 
     try {
-      const { isLowStock } = await import("../../utils/lowStockConfig.js");
       const { sendLowStockNotification } =
         await import("../../notifications/notification.service.js");
-      const affectedBarang = await pool.query(
-        `SELECT id_barang, nama_barang, stok_dasar, satuan_dasar
-         FROM barang
-         WHERE id_barang = ANY($1::uuid[])`,
-        [barangIds],
-      );
-      if (affectedBarang.rows.some(isLowStock)) {
-        await sendLowStockNotification();
-      }
+      await sendLowStockNotification({
+        barangIds,
+        actorUserId: id_user,
+        dedupMinutes: 60,
+      });
     } catch (lowStockErr) {
       console.error("Error creating low stock notification:", lowStockErr);
     }

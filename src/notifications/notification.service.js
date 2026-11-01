@@ -4,6 +4,8 @@ import {
   createNotification,
   getDailyReportMetadataByDate,
   getLowStockItems,
+  getBarangByIds,
+  hasRecentLowStockNotificationForItem
 } from "./notification.repository.js";
 import { publishNotification } from "../realtime/index.js";
 import { sendOwnerPush } from "../fcm/index.js";
@@ -77,12 +79,26 @@ export const sendDailyReport = async (reportDate) => {
   return deliverNotification(notification);
 };
 
-export const sendLowStockNotification = async () => {
-  const items = await getLowStockItems();
+export const sendLowStockNotification = async ({
+  barangIds = null,
+  actorUserId = null,
+  dedupMinutes = 60,
+} = {}) => {
+  const items =
+    barangIds && barangIds.length > 0
+      ? await getBarangByIds(barangIds)
+      : await getLowStockItems();
+  
   const lowStockItems = items.filter((item) => isLowStock(item));
-
   const createdNotifications = [];
+  
   for (const item of lowStockItems) {
+    const alreadyNotified = await hasRecentLowStockNotificationForItem(
+      item.id_barang,
+      dedupMinutes,
+    );
+    if (alreadyNotified) continue;
+    
     const threshold = getLowStockThreshold(item.nama_barang, item.satuan_dasar);
     const metadata = {
       nama_barang: item.nama_barang,
@@ -100,6 +116,7 @@ export const sendLowStockNotification = async () => {
       notificationType: NOTIFICATION_TYPES.LOW_STOCK,
       referenceTable: "barang",
       referenceId: item.id_barang,
+      actorUserId,
       metadata,
     });
     const delivered = await deliverNotification(notification);

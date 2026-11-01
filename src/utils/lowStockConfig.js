@@ -1,16 +1,30 @@
-const LOW_STOCK_GRAM_NAMED = {
-  Beras: 1000, // 1 kg
-  Dedak: 1000, // 1 kg
-  Gula: 250, // 250 gram
+const LOW_STOCK_GRAM_PREFIXES = {
+  Beras: 1000,
+  Dedak: 1000,
+  Gula: 250,
+};
+
+const PCS_DEFAULT_THRESHOLD = 2;
+
+const findGramThreshold = (nama_barang) => {
+  const nama = String(nama_barang || "")
+    .trim()
+    .toLowerCase();
+  if (!nama) return 0;
+
+  for (const [prefix, threshold] of Object.entries(LOW_STOCK_GRAM_PREFIXES)) {
+    const normalizedPrefix = prefix.toLowerCase();
+    if (nama.startsWith(normalizedPrefix)) {
+      return threshold;
+    }
+  }
+  return 0;
 };
 
 export const getLowStockThreshold = (nama_barang, satuan_dasar) => {
   const satuan = String(satuan_dasar || "").toUpperCase();
-  if (satuan === "PCS") return 2;
-  if (satuan === "GRAM") {
-    const nama = String(nama_barang || "").trim();
-    return LOW_STOCK_GRAM_NAMED[nama] ?? 0;
-  }
+  if (satuan === "PCS") return PCS_DEFAULT_THRESHOLD;
+  if (satuan === "GRAM") return findGramThreshold(nama_barang);
   return 0;
 };
 
@@ -20,5 +34,6 @@ export const isLowStock = (barang) => {
     barang.nama_barang,
     barang.satuan_dasar,
   );
+  if (threshold <= 0) return false;
   return Number(barang.stok_dasar) <= threshold;
 };
