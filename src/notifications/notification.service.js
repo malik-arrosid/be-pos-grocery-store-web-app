@@ -5,12 +5,16 @@ import {
   getDailyReportMetadataByDate,
   getLowStockItems,
   getBarangByIds,
-  hasRecentLowStockNotificationForItem
+  hasRecentNotificationForItem,
 } from "./notification.repository.js";
 import { publishNotification } from "../realtime/index.js";
 import { sendOwnerPush } from "../fcm/index.js";
 import { formatQty } from "../utils/qtyFormat.js";
-import { getLowStockThreshold, isLowStock } from "../utils/lowStockConfig.js";
+import {
+  getLowStockThreshold,
+  isLowStock,
+  isOutOfStock,
+} from "../utils/lowStockConfig.js";
 
 const formatIDRCurrency = (value) =>
   Number(value || 0).toLocaleString("id-ID", {
@@ -79,7 +83,111 @@ export const sendDailyReport = async (reportDate) => {
   return deliverNotification(notification);
 };
 
-export const sendLowStockNotification = async ({
+const createLowStockForItem = async (item, actorUserId, dedupMinutes) => {
+  const already = await hasRecentNotificationForItem(
+    item.id_barang,
+    NOTIFICATION_TYPES.LOW_STOCK,
+    dedupMinutes,
+  );
+  if (already) return null;
+
+  const threshold = getLowStockThreshold(item.nama_barang, item.satuan_dasar);
+  const metadata = {
+    nama_barang: item.nama_barang,
+    stok_dasar: Number(item.stok_dasar),
+    satuan_dasar: item.satuan_dasar,
+    threshold,
+  };
+  const formatted = formatNotification(NOTIFICATION_TYPES.LOW_STOCK, metadata);
+  const notification = await createNotification({
+    title: formatted.title,
+    message: formatted.message,
+    notificationType: NOTIFICATION_TYPES.LOW_STOCK,
+    referenceTable: "barang",
+    referenceId: item.id_barang,
+    actorUserId,
+    metadata,
+  });
+  return deliverNotification(notification);
+};
+
+const createOutOfStockForItem = async (item, actorUserId, dedupMinutes) => {
+  const already = await hasRecentNotificationForItem(
+    item.id_barang,
+    NOTIFICATION_TYPES.OUT_OF_STOCK,
+    dedupMinutes,
+  );
+  if (already) return null;
+
+  const metadata = {
+    nama_barang: item.nama_barang,
+    stok_dasar: Number(item.stok_dasar),
+    satuan_dasar: item.satuan_dasar,
+  };
+  const formatted = formatNotification(
+    NOTIFICATION_TYPES.OUT_OF_STOCK,
+    metadata,
+  );
+  const notification = await createNotification({
+    title: formatted.title,
+    message: formatted.message,
+    notificationType: NOTIFICATION_TYPES.OUT_OF_STOCK,
+    referenceTable: "barang",
+    referenceId: item.id_barang,
+    actorUserId,
+    metadata,
+  });
+  return deliverNotification(notification);
+};
+
+// export const sendLowStockNotification = async ({
+//   barangIds = null,
+//   actorUserId = null,
+//   dedupMinutes = 60,
+// } = {}) => {
+//   const items =
+//     barangIds && barangIds.length > 0
+//       ? await getBarangByIds(barangIds)
+//       : await getLowStockItems();
+
+//   const lowStockItems = items.filter((item) => isLowStock(item));
+//   const createdNotifications = [];
+
+//   for (const item of lowStockItems) {
+//     const alreadyNotified = await hasRecentLowStockNotificationForItem(
+//       item.id_barang,
+//       dedupMinutes,
+//     );
+//     if (alreadyNotified) continue;
+
+//     const threshold = getLowStockThreshold(item.nama_barang, item.satuan_dasar);
+//     const metadata = {
+//       nama_barang: item.nama_barang,
+//       stok_dasar: Number(item.stok_dasar),
+//       satuan_dasar: item.satuan_dasar,
+//       threshold,
+//     };
+//     const formattedNotification = formatNotification(
+//       NOTIFICATION_TYPES.LOW_STOCK,
+//       metadata,
+//     );
+//     const notification = await createNotification({
+//       title: formattedNotification.title,
+//       message: formattedNotification.message,
+//       notificationType: NOTIFICATION_TYPES.LOW_STOCK,
+//       referenceTable: "barang",
+//       referenceId: item.id_barang,
+//       actorUserId,
+//       metadata,
+//     });
+//     const delivered = await deliverNotification(notification);
+//     createdNotifications.push(delivered);
+//   }
+
+//   return createdNotifications;
+// };
+
+export const sendOutOfStockNotification = async ({
   barangIds = null,
   actorUserId = null,
   dedupMinutes = 60,
@@ -88,40 +196,39 @@ export const sendLowStockNotification = async ({
     barangIds && barangIds.length > 0
       ? await getBarangByIds(barangIds)
       : await getLowStockItems();
-  
-  const lowStockItems = items.filter((item) => isLowStock(item));
-  const createdNotifications = [];
-  
-  for (const item of lowStockItems) {
-    const alreadyNotified = await hasRecentLowStockNotificationForItem(
-      item.id_barang,
+
+  const created = [];
+  for (const item of items) {
+    if (!isOutOfStock(item)) continue;
+    const notif = await createOutOfStockForItem(
+      item,
+      actorUserId,
       dedupMinutes,
     );
-    if (alreadyNotified) continue;
-    
-    const threshold = getLowStockThreshold(item.nama_barang, item.satuan_dasar);
-    const metadata = {
-      nama_barang: item.nama_barang,
-      stok_dasar: Number(item.stok_dasar),
-      satuan_dasar: item.satuan_dasar,
-      threshold,
-    };
-    const formattedNotification = formatNotification(
-      NOTIFICATION_TYPES.LOW_STOCK,
-      metadata,
-    );
-    const notification = await createNotification({
-      title: formattedNotification.title,
-      message: formattedNotification.message,
-      notificationType: NOTIFICATION_TYPES.LOW_STOCK,
-      referenceTable: "barang",
-      referenceId: item.id_barang,
-      actorUserId,
-      metadata,
-    });
-    const delivered = await deliverNotification(notification);
-    createdNotifications.push(delivered);
+    if (notif) created.push(notif);
   }
+  return created;
+};
 
-  return createdNotifications;
+export const sendStockNotifications = async ({
+  barangIds = null,
+  actorUserId = null,
+  dedupMinutes = 60,
+} = {}) => {
+  const items =
+    barangIds && barangIds.length > 0
+      ? await getBarangByIds(barangIds)
+      : await getLowStockItems();
+
+  const created = [];
+  for (const item of items) {
+    let notif = null;
+    if (isOutOfStock(item)) {
+      notif = await createOutOfStockForItem(item, actorUserId, dedupMinutes);
+    } else if (isLowStock(item)) {
+      notif = await createLowStockForItem(item, actorUserId, dedupMinutes);
+    }
+    if (notif) created.push(notif);
+  }
+  return created;
 };

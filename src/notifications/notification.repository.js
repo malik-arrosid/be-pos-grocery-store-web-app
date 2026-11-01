@@ -227,19 +227,28 @@ export const getBarangByIds = async (ids) => {
   return result.rows;
 };
 
-export const hasRecentLowStockNotificationForItem = async (
+export const hasRecentNotificationForItem = async (
   id_barang,
+  notificationType,
   withinMinutes = 60,
 ) => {
   const query = `
-    SELECT 1
-    FROM notifications
-    WHERE notification_type = 'LOW_STOCK'
+    SELECT 1 FROM notifications
+    WHERE notification_type = $1
       AND reference_table = 'barang'
-      AND reference_id = $1
-      AND created_at >= NOW() - ($2 || ' minutes')::interval
+      AND reference_id = $2
+      AND created_at >= NOW() - ($3 || ' minutes')::interval
     LIMIT 1
   `;
-  const result = await pool.query(query, [id_barang, String(withinMinutes)]);
+  const result = await pool.query(query, [
+    notificationType,
+    id_barang,
+    String(withinMinutes),
+  ]);
   return result.rowCount > 0;
 };
+
+// export const hasRecentLowStockNotificationForItem = async (
+//   id_barang,
+//   withinMinutes = 60,
+// ) => hasRecentNotificationForItem(id_barang, "LOW_STOCK", withinMinutes);

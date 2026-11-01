@@ -28,8 +28,14 @@ export const getLowStockThreshold = (nama_barang, satuan_dasar) => {
   return 0;
 };
 
+export const isOutOfStock = (barang) => {
+  if (!barang) return false;
+  return Number(barang.stok_dasar) === 0;
+};
+
 export const isLowStock = (barang) => {
   if (!barang) return false;
+  if (isOutOfStock(barang)) return false;
   const threshold = getLowStockThreshold(
     barang.nama_barang,
     barang.satuan_dasar,

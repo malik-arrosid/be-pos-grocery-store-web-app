@@ -264,15 +264,15 @@ const addTransaksi = async (req, res) => {
     }
 
     try {
-      const { sendLowStockNotification } =
+      const { sendStockNotifications } =
         await import("../../notifications/notification.service.js");
-      await sendLowStockNotification({
+      await sendStockNotifications({
         barangIds,
         actorUserId: id_user,
         dedupMinutes: 60,
       });
-    } catch (lowStockErr) {
-      console.error("Error creating low stock notification:", lowStockErr);
+    } catch (stockNotifErr) {
+      console.error("Error creating low stock notification:", stockNotifErr);
     }
     
     // Response sukses

@@ -25,13 +25,28 @@ export const formatNotification = (type, payload = {}) => {
       const satuan = payload.satuan_dasar || "";
       const stokFormatted = formatQty(payload.stok_dasar, satuan);
       const thresholdFormatted = formatQty(payload.threshold, satuan);
-      
+
       return {
         title: "Peringatan Stok Menipis",
         message:
           payload.message ||
           `Segera Restok Barang "${payload.nama_barang || "-"}" karna tersisa hanya ${stokFormatted ?? "-"} (batas low stock: ${thresholdFormatted ?? "-"})`,
       };
+
+    case NOTIFICATION_TYPES.OUT_OF_STOCK: {
+      const satuanLabel =
+        String(payload.satuan_dasar || "")
+          .trim()
+          .toUpperCase() === "GRAM"
+          ? "gram"
+          : "pcs";
+      return {
+        title: "Peringatan Stok Habis",
+        message:
+          payload.message ||
+          `Segera Restok Barang "${payload.nama_barang || "-"}" karna stok sudah habis (stok: 0 ${satuanLabel})`,
+      };
+    }
 
     default:
       return {
