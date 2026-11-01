@@ -269,7 +269,7 @@ const addTransaksi = async (req, res) => {
       await sendStockNotifications({
         barangIds,
         actorUserId: id_user,
-        dedupMinutes: 60,
+        dedupMinutes: 1,
       });
     } catch (stockNotifErr) {
       console.error("Error creating low stock notification:", stockNotifErr);

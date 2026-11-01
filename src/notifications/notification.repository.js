@@ -230,7 +230,7 @@ export const getBarangByIds = async (ids) => {
 export const hasRecentNotificationForItem = async (
   id_barang,
   notificationType,
-  withinMinutes = 60,
+  withinMinutes,
 ) => {
   const query = `
     SELECT 1 FROM notifications
@@ -247,8 +247,3 @@ export const hasRecentNotificationForItem = async (
   ]);
   return result.rowCount > 0;
 };
-
-// export const hasRecentLowStockNotificationForItem = async (
-//   id_barang,
-//   withinMinutes = 60,
-// ) => hasRecentNotificationForItem(id_barang, "LOW_STOCK", withinMinutes);
