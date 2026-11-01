@@ -234,23 +234,6 @@ const addTransaksi = async (req, res) => {
     client.release();
     client = null;
 
-    try {
-      const { isLowStock } = await import("../../utils/lowStockConfig.js");
-      const { sendLowStockNotification } =
-        await import("../../notifications/notification.service.js");
-      const affectedBarang = await pool.query(
-        `SELECT id_barang, nama_barang, stok_dasar, satuan_dasar
-         FROM barang
-         WHERE id_barang = ANY($1::uuid[])`,
-        [barangIds],
-      );
-      if (affectedBarang.rows.some(isLowStock)) {
-        await sendLowStockNotification();
-      }
-    } catch (lowStockErr) {
-      console.error("Error creating low stock notification:", lowStockErr);
-    }
-    
     // Invoice PDF kini dibuat on-demand saat diunduh (lihat downloadInvoicePdf),
     // tidak lagi digenerate & disimpan ke disk saat transaksi dibuat.
     let notificationError = null;
@@ -280,6 +263,23 @@ const addTransaksi = async (req, res) => {
       notificationError = err?.message || String(err);
     }
 
+    try {
+      const { isLowStock } = await import("../../utils/lowStockConfig.js");
+      const { sendLowStockNotification } =
+        await import("../../notifications/notification.service.js");
+      const affectedBarang = await pool.query(
+        `SELECT id_barang, nama_barang, stok_dasar, satuan_dasar
+         FROM barang
+         WHERE id_barang = ANY($1::uuid[])`,
+        [barangIds],
+      );
+      if (affectedBarang.rows.some(isLowStock)) {
+        await sendLowStockNotification();
+      }
+    } catch (lowStockErr) {
+      console.error("Error creating low stock notification:", lowStockErr);
+    }
+    
     // Response sukses
     return res.status(201).json({
       success: true,
