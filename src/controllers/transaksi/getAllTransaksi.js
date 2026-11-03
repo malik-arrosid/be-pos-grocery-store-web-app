@@ -1,15 +1,12 @@
 import pool from "../../database/db.js";
-import { normalizeUnit, buildJumlahItemLabel } from "./transaksiHelpers.js";
 
 const getAllTransaksi = async (req, res) => {
   try {
-    // Ambil parameter pagination dari query
     const { page = 1, limit = 10 } = req.query;
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const offset = (pageNum - 1) * limitNum;
 
-    // Query untuk menghitung total data
     const countQuery = `
       SELECT COUNT(*)::int AS total
       FROM transaksi t
@@ -18,7 +15,6 @@ const getAllTransaksi = async (req, res) => {
     const totalData = countResult.rows[0].total;
     const totalPage = Math.ceil(totalData / limitNum);
 
-    // Query untuk mengambil data dengan pagination
     const transaksiResult = await pool.query(
       `
       SELECT 
@@ -80,7 +76,6 @@ const getAllTransaksi = async (req, res) => {
     for (const detail of detailResult.rows) {
       const detailBarang = {
         ...detail,
-        satuan_dasar: normalizeUnit(detail.satuan_dasar),
       };
       delete detailBarang.id_transaksi;
 
@@ -94,7 +89,7 @@ const getAllTransaksi = async (req, res) => {
 
       return {
         ...trx,
-        jumlah_item: buildJumlahItemLabel(detail_barang),
+        jumlah_item: detail_barang.length,
         detail_barang,
       };
     });

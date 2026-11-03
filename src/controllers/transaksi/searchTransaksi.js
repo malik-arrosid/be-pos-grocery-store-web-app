@@ -1,5 +1,4 @@
 import pool from "../../database/db.js";
-import { normalizeUnit, buildJumlahItemLabel } from "./transaksiHelpers.js";
 
 const searchTransaksi = async (req, res) => {
   const {
@@ -114,7 +113,6 @@ const searchTransaksi = async (req, res) => {
     for (const detail of detailResult.rows) {
       const detailBarang = {
         ...detail,
-        satuan_dasar: normalizeUnit(detail.satuan_dasar),
       };
       delete detailBarang.id_transaksi;
 
@@ -128,7 +126,7 @@ const searchTransaksi = async (req, res) => {
 
       return {
         ...trx,
-        jumlah_item: buildJumlahItemLabel(detail_barang),
+        jumlah_item: detail_barang.length,
         detail_barang,
       };
     });
