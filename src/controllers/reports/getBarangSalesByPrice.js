@@ -2,7 +2,7 @@ import pool from "../../database/db.js";
 
 const getBarangSalesByPrice = async (req, res) => {
   try {
-    const { startDate, endDate, id_barang, keyword="", page = 1, limit = 10 } = req.query;
+    const { id_barang, keyword="", page = 1, limit = 10 } = req.query;
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
@@ -10,26 +10,6 @@ const getBarangSalesByPrice = async (req, res) => {
 
     const params = [];
     let whereClause = "WHERE t.status_transaksi = 'berhasil'";
-
-    if (startDate && endDate) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid date format. Use YYYY-MM-DD",
-        });
-      }
-      if (new Date(startDate) > new Date(endDate)) {
-        return res.status(400).json({
-          success: false,
-          message: "Start date must be before or equal to end date",
-        });
-      }
-      params.push(startDate);
-      whereClause += ` AND DATE(t.created_at) >= $${params.length}`;
-      params.push(endDate);
-      whereClause += ` AND DATE(t.created_at) <= $${params.length}`;
-    }
 
     if (id_barang) {
       params.push(id_barang);
@@ -41,14 +21,13 @@ const getBarangSalesByPrice = async (req, res) => {
       params.push(`%${trimmedKeyword}%`);
       whereClause += ` AND dt.nama_barang ILIKE $${params.length}`;
     }
-    
+
     const fromClause = `
       FROM detail_transaksi dt
       JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
       LEFT JOIN barang b ON b.id_barang = dt.id_barang
       ${whereClause}
     `;
-
     
     const countQuery = `
       SELECT COUNT(*)::int AS total FROM (
@@ -69,7 +48,8 @@ const getBarangSalesByPrice = async (req, res) => {
         dt.harga_jual_per_sd,
         SUM(dt.quantity)::int AS total_quantity,
         COUNT(DISTINCT dt.id_transaksi)::int AS total_transaksi,
-        SUM(dt.subtotal)::int AS total_subtotal
+        SUM(dt.subtotal)::int AS total_subtotal,
+        MAX(t.created_at) AS tgl_terakhir_transaksi
       ${fromClause}
       GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar, b.created_at, dt.harga_jual_per_sd
       ORDER BY b.created_at DESC, dt.harga_jual_per_sd ASC
