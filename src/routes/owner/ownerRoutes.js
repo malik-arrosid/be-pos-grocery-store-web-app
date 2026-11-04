@@ -4,6 +4,7 @@ import {
   getWeeklyReport,
   getMonthlyReport,
   getYearlyReport,
+  getBarangSalesByPrice
 } from "../../controllers/reports/index.js";
 import { getDateRangeStats } from "../../controllers/transaksi/index.js";
 
@@ -30,6 +31,13 @@ router.get(
   authenticate,
   authorize(["owner"]),
   getYearlyReport,
+);
+
+router.get(
+  "/reports/barang-sales-by-price",
+  authenticate,
+  authorize(["owner"]),
+  getBarangSalesByPrice
 );
 
 router.get(
