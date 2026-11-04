@@ -2,7 +2,7 @@ import pool from "../../database/db.js";
 
 const getBarangSalesByPrice = async (req, res) => {
   try {
-    const { startDate, endDate, id_barang, page = 1, limit = 10 } = req.query;
+    const { startDate, endDate, id_barang, keyword="", page = 1, limit = 10 } = req.query;
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const limitNum = Math.max(parseInt(limit, 10) || 10, 1);
@@ -36,6 +36,12 @@ const getBarangSalesByPrice = async (req, res) => {
       whereClause += ` AND dt.id_barang = $${params.length}`;
     }
 
+    const trimmedKeyword = String(keyword || "").trim();
+    if (trimmedKeyword) {
+      params.push(`%${trimmedKeyword}%`);
+      whereClause += ` AND dt.nama_barang ILIKE $${params.length}`;
+    }
+    
     const fromClause = `
       FROM detail_transaksi dt
       JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
@@ -43,6 +49,7 @@ const getBarangSalesByPrice = async (req, res) => {
       ${whereClause}
     `;
 
+    
     const countQuery = `
       SELECT COUNT(*)::int AS total FROM (
         SELECT dt.id_barang, dt.harga_jual_per_sd
@@ -81,6 +88,7 @@ const getBarangSalesByPrice = async (req, res) => {
         limit: limitNum,
         total_data: totalData,
         total_page: totalPage,
+        keyword: trimmedKeyword || null,
       },
     });
   } catch (err) {
