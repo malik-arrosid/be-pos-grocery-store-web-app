@@ -38,8 +38,8 @@ const getOwnerDashboardStats = async (req, res) => {
     const topProfitQuery = `
       SELECT
         dt.id_barang,
-        dt.nama_barang,
-        b.satuan_dasar,
+        COALESCE(MAX(b.nama_barang), MAX(dt.nama_barang)) AS nama_barang,
+        MAX(b.satuan_dasar) AS satuan_dasar,
         COALESCE(SUM(dt.quantity), 0)::int AS total_quantity,
         COALESCE(SUM(dt.subtotal), 0)::bigint AS total_subtotal,
         COALESCE(SUM(dt.quantity * b.harga_modal_per_sd), 0)::bigint AS total_hpp,
@@ -50,7 +50,7 @@ const getOwnerDashboardStats = async (req, res) => {
       LEFT JOIN barang b ON b.id_barang = dt.id_barang
       WHERE DATE(t.created_at) = CURRENT_DATE
         AND t.status_transaksi = 'berhasil'
-      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar
+      GROUP BY dt.id_barang
       ORDER BY total_laba DESC
       LIMIT 5
     `;
@@ -58,8 +58,8 @@ const getOwnerDashboardStats = async (req, res) => {
     const topSpendQuery = `
       SELECT
         dt.id_barang,
-        dt.nama_barang,
-        b.satuan_dasar,
+        COALESCE(MAX(b.nama_barang), MAX(dt.nama_barang)) AS nama_barang,
+        MAX(b.satuan_dasar) AS satuan_dasar,
         COALESCE(SUM(dt.quantity), 0)::int AS total_quantity,
         COALESCE(SUM(dt.subtotal), 0)::bigint AS total_subtotal,
         COALESCE(SUM(dt.subtotal - (dt.quantity * b.harga_modal_per_sd)), 0)::bigint AS total_laba,
@@ -69,7 +69,7 @@ const getOwnerDashboardStats = async (req, res) => {
       LEFT JOIN barang b ON b.id_barang = dt.id_barang
       WHERE DATE(t.created_at) = CURRENT_DATE
         AND t.status_transaksi = 'berhasil'
-      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar
+      GROUP BY dt.id_barang
       ORDER BY total_subtotal DESC, total_quantity DESC
       LIMIT 5
     `;
@@ -77,8 +77,8 @@ const getOwnerDashboardStats = async (req, res) => {
     const topFrequentQuery = `
       SELECT
         dt.id_barang,
-        dt.nama_barang,
-        b.satuan_dasar,
+        COALESCE(MAX(b.nama_barang), MAX(dt.nama_barang)) AS nama_barang,
+        MAX(b.satuan_dasar) AS satuan_dasar,
         COALESCE(SUM(dt.quantity), 0)::int AS total_quantity,
         COALESCE(SUM(dt.subtotal), 0)::bigint AS total_subtotal,
         COALESCE(SUM(dt.subtotal - (dt.quantity * b.harga_modal_per_sd)), 0)::bigint AS total_laba,
@@ -88,7 +88,7 @@ const getOwnerDashboardStats = async (req, res) => {
       LEFT JOIN barang b ON b.id_barang = dt.id_barang
       WHERE DATE(t.created_at) = CURRENT_DATE
         AND t.status_transaksi = 'berhasil'
-      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar
+      GROUP BY dt.id_barang
       ORDER BY total_transaksi DESC, total_quantity DESC
       LIMIT 5
     `;
