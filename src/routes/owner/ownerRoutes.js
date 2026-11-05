@@ -7,10 +7,18 @@ import {
   getBarangSalesByPrice
 } from "../../controllers/reports/index.js";
 import { getDateRangeStats } from "../../controllers/transaksi/index.js";
+import { getOwnerDashboardStats } from "../../controllers/dashboard/index.js";
 
 const router = express.Router();
 
 // Reports routes - owner only
+
+router.get(
+  "/dashboard/stats",
+  authenticate,
+  authorize(["owner"]),
+  getOwnerDashboardStats,
+);
 
 router.get(
   "/reports/weekly",
