@@ -2,7 +2,6 @@ import pool from "../../database/db.js";
 
 const getOwnerDashboardStats = async (req, res) => {
   try {
-    // ===== 1. Statistik transaksi HARI INI =====
     const todayTxQuery = `
       SELECT
         COUNT(*)::int AS total_transaksi_hari_ini,
@@ -18,7 +17,7 @@ const getOwnerDashboardStats = async (req, res) => {
     const profitQuery = `
       SELECT
         COALESCE(SUM(dt.subtotal), 0)::bigint AS total_penjualan_item,
-        COALESCE(SUM(dt.quantity * b.harga_modal_per_sd), 0)::bigint AS total_hpp
+        COALESCE(SUM(dt.quantity * b.harga_modal_per_sd), 0)::bigint AS total_hpp,
         COUNT(DISTINCT dt.id_barang)::int AS jumlah_barang_terjual_hari_ini
       FROM detail_transaksi dt
       JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
@@ -36,10 +35,78 @@ const getOwnerDashboardStats = async (req, res) => {
       WHERE DATE(bm.created_at) = CURRENT_DATE
     `;
 
-    const [txResult, profitResult, masukResult] = await Promise.all([
+    const topProfitQuery = `
+      SELECT
+        dt.id_barang,
+        dt.nama_barang,
+        b.satuan_dasar,
+        COALESCE(SUM(dt.quantity), 0)::int AS total_quantity,
+        COALESCE(SUM(dt.subtotal), 0)::bigint AS total_subtotal,
+        COALESCE(SUM(dt.quantity * b.harga_modal_per_sd), 0)::bigint AS total_hpp,
+        COALESCE(SUM(dt.subtotal - (dt.quantity * b.harga_modal_per_sd)), 0)::bigint AS total_laba,
+        COUNT(DISTINCT dt.id_transaksi)::int AS total_transaksi
+      FROM detail_transaksi dt
+      JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
+      LEFT JOIN barang b ON b.id_barang = dt.id_barang
+      WHERE DATE(t.created_at) = CURRENT_DATE
+        AND t.status_transaksi = 'berhasil'
+      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar
+      ORDER BY total_laba DESC
+      LIMIT 5
+    `;
+    
+    const topSpendQuery = `
+      SELECT
+        dt.id_barang,
+        dt.nama_barang,
+        b.satuan_dasar,
+        COALESCE(SUM(dt.quantity), 0)::int AS total_quantity,
+        COALESCE(SUM(dt.subtotal), 0)::bigint AS total_subtotal,
+        COALESCE(SUM(dt.subtotal - (dt.quantity * b.harga_modal_per_sd)), 0)::bigint AS total_laba,
+        COUNT(DISTINCT dt.id_transaksi)::int AS total_transaksi
+      FROM detail_transaksi dt
+      JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
+      LEFT JOIN barang b ON b.id_barang = dt.id_barang
+      WHERE DATE(t.created_at) = CURRENT_DATE
+        AND t.status_transaksi = 'berhasil'
+      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar
+      ORDER BY total_subtotal DESC, total_quantity DESC
+      LIMIT 5
+    `;
+    
+    const topFrequentQuery = `
+      SELECT
+        dt.id_barang,
+        dt.nama_barang,
+        b.satuan_dasar,
+        COALESCE(SUM(dt.quantity), 0)::int AS total_quantity,
+        COALESCE(SUM(dt.subtotal), 0)::bigint AS total_subtotal,
+        COALESCE(SUM(dt.subtotal - (dt.quantity * b.harga_modal_per_sd)), 0)::bigint AS total_laba,
+        COUNT(DISTINCT dt.id_transaksi)::int AS total_transaksi
+      FROM detail_transaksi dt
+      JOIN transaksi t ON t.id_transaksi = dt.id_transaksi
+      LEFT JOIN barang b ON b.id_barang = dt.id_barang
+      WHERE DATE(t.created_at) = CURRENT_DATE
+        AND t.status_transaksi = 'berhasil'
+      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar
+      ORDER BY total_transaksi DESC, total_quantity DESC
+      LIMIT 5
+    `;
+    
+    const [
+      txResult,
+      profitResult,
+      masukResult,
+      topProfitResult,
+      topSpendResult,
+      topFrequentResult,
+    ] = await Promise.all([
       pool.query(todayTxQuery),
       pool.query(profitQuery),
       pool.query(barangMasukQuery),
+      pool.query(topProfitQuery),
+      pool.query(topSpendQuery),
+      pool.query(topFrequentQuery),
     ]);
 
     const totalTransaksiHariIni =
@@ -62,6 +129,17 @@ const getOwnerDashboardStats = async (req, res) => {
 
     const untungRugiOmset = omsetHariIni - totalPembelianBarangHariIni;
     const statusUntungRugiOmset = untungRugiOmset >= 0 ? "untung" : "rugi";
+
+    const mapTopRow = (row) => ({
+      id_barang: row.id_barang,
+      nama_barang: row.nama_barang,
+      satuan_dasar: row.satuan_dasar || "PCS",
+      total_quantity: Number(row.total_quantity || 0),
+      total_subtotal: Number(row.total_subtotal || 0),
+      total_hpp: Number(row.total_hpp || 0),
+      total_laba: Number(row.total_laba || 0),
+      total_transaksi: Number(row.total_transaksi || 0),
+    });
       
     return res.status(200).json({
       success: true,
@@ -75,6 +153,9 @@ const getOwnerDashboardStats = async (req, res) => {
         jumlah_barang_terjual_hari_ini: jumlahBarangTerjualHariIni,
         untung_rugi_omset: untungRugiOmset,
         status_untung_rugi_omset: statusUntungRugiOmset,
+        top_barang_laba: topProfitResult.rows.map(mapTopRow),
+        top_barang_belanja: topSpendResult.rows.map(mapTopRow),
+        top_barang_sering: topFrequentResult.rows.map(mapTopRow),
       },
     });
   } catch (err) {
