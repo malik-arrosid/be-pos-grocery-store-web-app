@@ -34,7 +34,7 @@ const getBarangSalesByPrice = async (req, res) => {
         SELECT dt.id_barang, dt.harga_jual_per_sd
         ${fromClause}
         GROUP BY dt.id_barang, dt.harga_jual_per_sd
-      ) sub
+      ) grouped_sales
     `;
     const countResult = await pool.query(countQuery, params);
     const totalData = countResult.rows[0].total;
@@ -42,17 +42,37 @@ const getBarangSalesByPrice = async (req, res) => {
 
     const dataQuery = `
       SELECT
-        dt.id_barang,
-        dt.nama_barang,
-        b.satuan_dasar,
-        dt.harga_jual_per_sd,
-        SUM(dt.quantity)::int AS total_quantity,
-        COUNT(DISTINCT dt.id_transaksi)::int AS total_transaksi,
-        SUM(dt.subtotal)::int AS total_subtotal,
-        MAX(t.created_at) AS tgl_terakhir_transaksi
-      ${fromClause}
-      GROUP BY dt.id_barang, dt.nama_barang, b.satuan_dasar, b.created_at, dt.harga_jual_per_sd
-      ORDER BY b.created_at DESC, dt.harga_jual_per_sd ASC
+        grouped_sales.id_barang,
+        grouped_sales.nama_barang_terbaru AS nama_barang,
+        grouped_sales.satuan_dasar,
+        grouped_sales.harga_jual_per_sd,
+        grouped_sales.total_quantity,
+        grouped_sales.total_transaksi,
+        grouped_sales.total_subtotal,
+        grouped_sales.tgl_terakhir_transaksi
+      FROM (
+        SELECT
+          dt.id_barang,
+          dt.harga_jual_per_sd,
+          (
+            SELECT dt2.nama_barang
+            FROM detail_transaksi dt2
+            JOIN transaksi t2 ON t2.id_transaksi = dt2.id_transaksi
+            WHERE dt2.id_barang = dt.id_barang
+              AND t2.status_transaksi = 'berhasil'
+            ORDER BY t2.created_at DESC
+            LIMIT 1
+          ) AS nama_barang_terbaru,
+          MAX(b.satuan_dasar) AS satuan_dasar,
+          MAX(b.created_at) AS barang_created_at,
+          SUM(dt.quantity)::int AS total_quantity,
+          COUNT(DISTINCT dt.id_transaksi)::int AS total_transaksi,
+          SUM(dt.subtotal)::int AS total_subtotal,
+          MAX(t.created_at) AS tgl_terakhir_transaksi
+        ${fromClause}
+        GROUP BY dt.id_barang, dt.harga_jual_per_sd
+      ) grouped_sales
+      ORDER BY grouped_sales.barang_created_at DESC, grouped_sales.harga_jual_per_sd ASC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
     const dataParams = [...params, limitNum, offset];
